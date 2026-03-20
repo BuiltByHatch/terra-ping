@@ -1,0 +1,10 @@
+{
+  "name": "terra-ping",
+  "private": true,
+  "workspaces": [
+    "code/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace @terra-ping/web dev"
+  }
+}

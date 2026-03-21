@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraPing - Animal Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2D5A27;
+      --primary-dark: #1E3D1A;
+      --primary-light: #4A7A43;
+      --secondary: #8B4513;
+      --background: #F5F5DC;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --surface: #FFFFFF;
+      --border: #D4D4C4;
+      --map-water: #B8D4E8;
+      --map-land: #D4E4C4;
+      --map-grass: #B8D498;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--text);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Top Menu Bar */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 24px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-group:hover {
+      background: var(--surface);
+      border-color: var(--primary);
+    }
+
+    .filter-group.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .filter-icon {
+      font-size: 16px;
+    }
+
+    .filter-count {
+      background: rgba(0,0,0,0.1);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .filter-group.active .filter-count {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      width: 280px;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--primary);
+      background: var(--surface);
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 14px;
+      width: 100%;
+      color: var(--text);
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: var(--background);
+      border-color: var(--primary);
+    }
+
+    /* Map Container */
+    .map-container {
+      flex: 1;
+      position: relative;
+      margin-top: 64px;
+      background: var(--map-water);
+      overflow: hidden;
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 20% 30%, var(--map-land) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 60%, var(--map-land) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 80%, var(--map-land) 0%, transparent 25%),
+        radial-gradient(ellipse at 85% 20%, var(--map-grass) 0%, transparent 20%),
+        linear-gradient(180deg, var(--map-water) 0%, #A8C8D8 100%);
+    }
+
+    /* Map Grid Lines */
+    .map::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Animal Markers */
+    .animal-marker {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .animal-marker:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      z-index: 10;
+    }
+
+    .animal-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border: 3px solid white;
+      position: relative;
+    }
+
+    .animal-icon::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid currentColor;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+    }
+
+    .animal-marker.deer .animal-icon {
+      background: #8B4513;
+      color: #8B4513;
+    }
+
+    .animal-marker.wolf .animal-icon {
+      background: #4A5568;
+      color: #4A5568;
+    }
+
+    .animal-marker.bear .animal-icon {
+      background: #744210;
+      color: #744210;
+    }
+
+    .animal-marker.elk .animal-icon {
+      background: #975A16;
+      color: #975A16;
+    }
+
+    .animal-marker.cougar .animal-icon {
+      background: #B7791F;
+      color: #B7791F;
+    }
+
+    .animal-marker.moose .animal-icon {
+      background: #5D4E37;
+      color: #5D4E37;
+    }
+
+    .animal-label {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 12px;
+      background: var(--surface);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .animal-marker:hover .animal-label {
+      opacity: 1;
+    }
+
+    /* Legend Panel */
+    .legend-panel {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      min-width: 180px;
+    }
+
+    .legend-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* Stats Panel */
+    .stats-panel {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      display: flex;
+      gap: 32px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* Map Controls */
+    .map-controls {
+      position: absolute;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-control {
+      width: 40px;
+      height: 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+
+    .map-control:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Popup Card */
+    .popup-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+      width: 320px;
+      display: none;
+      z-index: 50;
+    }
+
+    .popup-card.visible {
+      display: block;
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .popup-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .popup-info h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .popup-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .popup-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .popup-stat {
+      text-align: center;
+    }
+
+    .popup-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .popup-stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .popup-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .popup-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .popup-btn.primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .popup-btn.secondary {
+      background: var(--background);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .popup-btn.secondary:hover {
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Menu Bar -->
+    <header class="top-bar">
+      <div class="logo">
+        <div class="logo-icon">🌍</div>
+        <span>TerraPing</span>
+      </div>
+      
+      <div class="filters">
+        <button class="filter-group active">
+          <span class="filter-icon">🦌</span>
+          <span>Deer</span>
+          <span class="filter-count">12</span>
+        </button>
+        <button class="filter-group">
+          <span class="filter-icon">🐺</span>
+          <span>Wolf</span>
+          <span class="filter-count">5</span>
+        </button>
+        <button class="filter-group">
+          <span class="filter-icon">🐻</span>
+          <span>Bear</span>
+          <span class="filter-count">3</span>
+        </button>
+        <button class="filter-group">
+          <span class="filter-icon">🦌</span>
+          <span>Elk</span>
+          <span class="filter-count">8</span>
+        </button>
+        <button class="filter-group">
+          <span class="filter-icon">🐆</span>
+          <span>Cougar</span>
+          <span class="filter-count">2</span>
+        </button>
+      </div>
+
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" placeholder="Search animals, locations...">
+      </div>
+
+      <div class="actions">
+        <button class="action-btn">📅</button>
+        <button class="action-btn">📊</button>
+        <button class="action-btn">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Map Container -->
+    <main class="map-container">
+      <div class="map">
+        <!-- Animal Markers -->
+        <div class="animal-marker deer" style="left: 25%; top: 35%;">
+          <div class="animal-icon">🦌</div>
+          <div class="animal-label">Deer #247</div>
+        </div>
+        
+        <div class="animal-marker deer" style="left: 32%; top: 42%;">
+          <div class="animal-icon">🦌</div>
+          <div class="animal-label">Deer #183</div>
+        </div>
+        
+        <div class="animal-marker wolf" style="left: 45%; top: 28%;">
+          <div class="animal-icon">🐺</div>
+          <div class="animal-label">Wolf Pack A</div>
+        </div>
+        
+        <div class="animal-marker bear" style="left: 68%; top: 45%;">
+          <div class="animal-icon">🐻</div>
+          <div class="animal-label">Bear #12</div>
+        </div>
+        
+        <div class="animal-marker elk" style="left: 55%; top: 62%;">
+          <div class="animal-icon">🦌</div>
+          <div class="animal-label">Elk #89</div>
+        </div>
+        
+        <div class="animal-marker cougar" style="left: 78%; top: 35%;">
+          <div class="animal-icon">🐆</div>
+          <div class="animal-label">Cougar #4</div>
+        </div>
+        
+        <div class="animal-marker deer" style="left: 20%; top: 55%;">
+          <div class="animal-icon">🦌</div>
+          <div class="animal-label">Deer #301</div>
+        </div>
+        
+        <div class="animal-marker wolf" style="left: 60%; top: 22%;">
+          <div class="animal-icon">🐺</div>
+          <div class="animal-label">Wolf #33</div>
+        </div>
+
+        <div class="animal-marker elk" style="left: 85%; top: 58%;">
+          <div class="animal-icon">🦌</div>
+          <div class="animal-label">Elk #67</div>
+        </div>
+
+        <div class="animal-marker moose" style="left: 38%; top: 70%;">
+          <div class="animal-icon">🫎</div>
+          <div class="animal-label">Moose #8</div>
+        </div>
+      </div>
+
+      <!-- Legend Panel -->
+      <aside class="legend-panel">
+        <div class="legend-title">Species</div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #8B4513;"></div>
+          <span>Deer (12)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #4A5568;"></div>
+          <span>Wolf (5)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #744210;"></div>
+          <span>Bear (3)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #975A16;"></div>
+          <span>Elk (8)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #B7791F;"></div>
+          <span>Cougar (2)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: #5D4E37;"></div>
+          <span>Moose (1)</span>
+        </div>
+      </aside>
+
+      <!-- Stats Panel -->
+      <aside class="stats-panel">
+        <div class="stat">
+          <div class="stat-value">31</div>
+          <div class="stat-label">Total Animals</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">6</div>
+          <div class="stat-label">Species</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">4</div>
+          <div class="stat-label">Active Packs</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">2h</div>
+          <div class="stat-label">Last Update</div>
+        </div>
+      </aside>
+
+      <!-- Map Controls -->
+      <div class="map-controls">
+        <button class="map-control">+</button>
+        <button class="map-control">−</button>
+        <button class="map-control">⊙</button>
+        <button class="map-control">🗺️</button>
+      </div>
+
+      <!-- Popup Card (shown on marker click) -->
+      <div class="popup-card visible">
+        <div class="popup-header">
+          <div class="popup-icon">🦌</div>
+          <div class="popup-info">
+            <h3>Deer #247</h3>
+            <p>Last seen 2 hours ago</p>
+          </div>
+        </div>
+        <div class="popup-stats">
+          <div class="popup-stat">
+            <div class="popup-stat-value">847</div>
+            <div class="popup-stat-label">Distance (km)</div>
+          </div>
+          <div class="popup-stat">
+            <div class="popup-stat-value">23</div>
+            <div class="popup-stat-label">Sightings</div>
+          </div>
+          <div class="popup-stat">
+            <div class="popup-stat-value">1.2</div>
+            <div class="popup-stat-label">Speed (m/s)</div>
+          </div>
+        </div>
+        <div class="popup-actions">
+          <button class="popup-btn secondary">View Details</button>
+          <button class="popup-btn primary">Track</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

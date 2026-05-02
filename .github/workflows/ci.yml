@@ -15,9 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: ./.github/actions/bootstrap-setup
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
+
+      - run: yarn install --frozen-lockfile
 
       - run: yarn workspace @terra-ping/universal-model typecheck
       - run: yarn workspace @terra-ping/transformers typecheck
@@ -26,8 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: ./.github/actions/bootstrap-setup
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
 
+      - run: yarn install --frozen-lockfile
       - run: yarn workspace @terra-ping/web build

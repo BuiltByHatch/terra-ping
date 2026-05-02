@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
+      - uses: ./.github/actions/bootstrap-setup
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -25,6 +30,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: ./.github/actions/bootstrap-setup
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4

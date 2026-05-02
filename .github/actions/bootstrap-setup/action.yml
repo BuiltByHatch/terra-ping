@@ -1,0 +1,22 @@
+name: Bootstrap Setup
+description: Checkout code, setup Node.js, and install dependencies
+inputs:
+  node-version:
+    description: Node.js version to setup
+    required: false
+    default: '20'
+  cache:
+    description: Package manager to cache (e.g., 'yarn', 'npm')
+    required: false
+    default: 'yarn'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.cache }}
+    - run: yarn install --frozen-lockfile
+      shell: bash

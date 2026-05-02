@@ -1,4 +1,4 @@
-export interface TransformerAdapter<TInput> {
+export interface TransformerAdapter<TInput, TOutput = import('@terra-ping/universal-model').Observation[]> {
   sourceName: string;
-  transform(input: TInput): Promise<import('@terra-ping/universal-model').Observation[]>;
+  transform(input: TInput): Promise<TOutput>;
 }

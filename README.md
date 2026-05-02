@@ -21,4 +21,3 @@ yarn dev
 - [code/web](./code/web) - Main web application
 - [code/universal-model](./code/universal-model) - Core data types and schemas
 - [code/transformers](./code/transformers) - Data transformation layer
-and
